@@ -1,0 +1,4 @@
+service:
+  name: bayaryuk-webhook
+  token: tkn_9fK2pL8qR3sT7vW1yZ4aB6cD0eF5gHxQ
+  retry: 3

@@ -1,0 +1,38 @@
+KUNCI JAWABAN REPO UJI SCANNER (semua nilai FIKTIF)
+
+SCAN 1 (baseline). Temuan yang seharusnya dilaporkan:
+1. .env  DB_PASSWORD = Byk!***************  -> tinggi (80-100), password kompleks non-placeholder
+2. .env  DB_USERNAME = baya*********  -> sedang (50-79), username produksi (bukan secret, tapi keyword Playbook)
+3. .env  APP_KEY = base***********************************************  -> tinggi, format base64 key Laravel valid
+4. config/services.php  secret_key (stripe) = stk_********************************  -> tinggi/sedang, pola secret key panjang acak
+5. config/services.php  api_key (mailgun) = mgk-********************************  -> tinggi/sedang, pola API key 32 hex
+6. config/app.yml  token = tkn_********************************  -> tinggi/sedang, token acak panjang
+7. database/dump.sql  password admin = Adm1************  -> sedang/tinggi (keyword tidak persis cocok; uji apakah agent membaca isi .sql)
+8. storage/keys/private.pem  private key = MIIE************************************************************  -> tinggi, RSA private key valid (keyword 'private_key' tidak ada di file; tergantung apakah agent mencari 'PRIVATE KEY')
+
+Temuan yang seharusnya tercatat sebagai PLACEHOLDER / confidence rendah:
+9.  config/database.php  DB_PASSWORD default 'forge' (juga DB_USERNAME 'forge') -> rendah (~10)
+10. config/services.php  firebase api_key 'changeme' -> rendah
+11. config/credentials.json  api_key 'your_api_key_here', secret_key 'xxx' -> rendah
+12. .env.local  DB_PASSWORD kosong, API_KEY 'null' -> rendah / dibuang
+
+Yang seharusnya DIBUANG dengan alasan:
+.env.production  -> duplikat persis .env
+.env.example     -> file contoh
+README.md, docs/setup.md -> dokumentasi
+tests/Feature/AuthTest.php -> file test
+app/Http/Controllers/PaymentController.php -> hanya memanggil config(), tidak berisi nilai
+
+Status perbandingan scan 1: baseline pertama (tidak ada histori).
+
+SCAN 2 (setelah ./scan2.sh). Status yang diharapkan:
+BERUBAH: .env DB_PASSWORD Byk!*************** -> Byk!****************  (catatan: 4 karakter awal sama, agent harus membandingkan nilai utuh/hash, bukan nilai tersamarkan)
+BARU:    config/aws.json secret_key = u8Yb*********************************** -> tinggi
+         config/aws.json access_key_id = AWSX**************** (bukan keyword Playbook; bonus jika tetap dilaporkan)
+HILANG:  database/dump.sql password admin
+TETAP:   APP_KEY, DB_USERNAME, stripe secret_key, mailgun api_key, app.yml token, private.pem, serta semua placeholder
+Alert scan 2: DB_PASSWORD (berubah) dan aws secret_key (baru).
+
+CATATAN PUSH
+- GitHub push protection mungkin menolak private.pem. Pilih "It's used in tests" di link yang muncul, lalu push ulang.
+- Tunggu indeks GitHub code search (beberapa menit sampai jam) sebelum scan. Cek: github.com/search?q=repo:<user>/scan-test-laravel+DB_PASSWORD&type=code
